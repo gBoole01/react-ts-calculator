@@ -123,6 +123,25 @@ function reducer(state: ReducerState, action: ReducerAction): ReducerState {
   }
 }
 
+const INTEGER_FORMATTER = new Intl.NumberFormat('en-us', {
+  maximumFractionDigits: 0,
+})
+
+function formatOperand(operand: string) {
+  if (operand == '') return
+  const [integer, decimal] = operand.split('.')
+
+  if (
+    (integer && isNaN(parseInt(integer))) ||
+    (decimal && isNaN(parseInt(decimal)))
+  )
+    return
+
+  if (integer == '') return `0.${decimal}`
+  if (decimal == null) return INTEGER_FORMATTER.format(parseInt(integer))
+  return `${INTEGER_FORMATTER.format(parseInt(integer))}.${decimal}`
+}
+
 export default function App() {
   const [{ currentOperand, previousOperand, operation }, dispatch] = useReducer<
     Reducer<ReducerState, ReducerAction>
@@ -137,9 +156,9 @@ export default function App() {
     <div className="calculator-grid">
       <div className="output">
         <div className="previous-operand">
-          {previousOperand} {operation}
+          {formatOperand(previousOperand)} {operation}
         </div>
-        <div className="current-operand">{currentOperand}</div>
+        <div className="current-operand">{formatOperand(currentOperand)}</div>
       </div>
       <button
         className="span-two"
