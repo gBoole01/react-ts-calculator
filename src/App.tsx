@@ -12,7 +12,7 @@ export enum Actions {
 
 export type ReducerAction =
   | { type: Actions.ADD_DIGIT; payload: { digit: string } }
-  | { type: Actions.CHOOSE_OPERATION; payload: { symbol: string } }
+  | { type: Actions.CHOOSE_OPERATION; payload: { operation: string } }
   | { type: Actions.CLEAR }
   | { type: Actions.DELETE_DIGIT }
   | { type: Actions.EVALUATE }
@@ -26,31 +26,83 @@ type ReducerState = {
 function reducer(state: ReducerState, action: ReducerAction): ReducerState {
   switch (action.type) {
     case Actions.ADD_DIGIT:
+      const { digit } = action.payload
+      if (digit === '0' && state.currentOperand === '0') return state
+      if (digit === '.' && state.currentOperand.includes('.')) return state
+
       return {
         ...state,
         currentOperand: `${state.currentOperand || ''}${action.payload.digit}`,
       }
+
     case Actions.CHOOSE_OPERATION:
-      console.log(action)
-      return state
+      const { operation } = action.payload
+      if (state.currentOperand == '' && state.previousOperand == '') {
+        return state
+      }
+
+      if (state.currentOperand == '') {
+        return {
+          ...state,
+          operation,
+        }
+      }
+
+      if (state.previousOperand == '') {
+        return {
+          ...state,
+          operation,
+          previousOperand: state.currentOperand,
+          currentOperand: '',
+        }
+      }
+
+      return {
+        ...state,
+        operation,
+        previousOperand: evaluate(state),
+        currentOperand: '',
+      }
+
     case Actions.CLEAR:
-      console.log(action)
-      return state
+      return {
+        currentOperand: '',
+        previousOperand: '',
+        operation: '',
+      }
     case Actions.DELETE_DIGIT:
       console.log(action)
       return state
+
     case Actions.EVALUATE:
-      console.log(action)
-      return state
+      if (
+        state.operation == '' ||
+        state.previousOperand == '' ||
+        state.currentOperand == ''
+      ) {
+        return state
+      }
+
+      return {
+        ...state,
+        previousOperand: '',
+        operation: '',
+        currentOperand: evaluate(state),
+      }
+
     default:
       return state
   }
 }
 
-function App() {
+export default function App() {
   const [{ currentOperand, previousOperand, operation }, dispatch] = useReducer<
     Reducer<ReducerState, ReducerAction>
-  >(reducer, {} as ReducerState)
+  >(reducer, {
+    currentOperand: '',
+    previousOperand: '',
+    operation: '',
+  })
 
   return (
     <div className="calculator-grid">
@@ -69,19 +121,19 @@ function App() {
       <button onClick={() => dispatch({ type: Actions.DELETE_DIGIT })}>
         DEL
       </button>
-      <OperationButton dispatch={dispatch} symbol="÷" />
+      <OperationButton dispatch={dispatch} operation="÷" />
       <DigitButton dispatch={dispatch} digit="1" />
       <DigitButton dispatch={dispatch} digit="2" />
       <DigitButton dispatch={dispatch} digit="3" />
-      <OperationButton dispatch={dispatch} symbol="*" />
+      <OperationButton dispatch={dispatch} operation="*" />
       <DigitButton dispatch={dispatch} digit="4" />
       <DigitButton dispatch={dispatch} digit="5" />
       <DigitButton dispatch={dispatch} digit="6" />
-      <OperationButton dispatch={dispatch} symbol="+" />
+      <OperationButton dispatch={dispatch} operation="+" />
       <DigitButton dispatch={dispatch} digit="7" />
       <DigitButton dispatch={dispatch} digit="8" />
       <DigitButton dispatch={dispatch} digit="9" />
-      <OperationButton dispatch={dispatch} symbol="-" />
+      <OperationButton dispatch={dispatch} operation="-" />
       <DigitButton dispatch={dispatch} digit="." />
       <DigitButton dispatch={dispatch} digit="0" />
       <button
@@ -94,4 +146,30 @@ function App() {
   )
 }
 
-export default App
+function evaluate({
+  currentOperand,
+  previousOperand,
+  operation,
+}: ReducerState) {
+  const previous = parseFloat(previousOperand)
+  const current = parseFloat(currentOperand)
+  if (isNaN(previous) || isNaN(current)) return ''
+
+  let computation = ''
+  switch (operation) {
+    case '+':
+      computation = (previous + current).toString()
+      break
+    case '-':
+      computation = (previous - current).toString()
+      break
+    case '*':
+      computation = (previous * current).toString()
+      break
+    case '÷':
+      computation = (previous / current).toString()
+      break
+  }
+
+  return computation
+}
