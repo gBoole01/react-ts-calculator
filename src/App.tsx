@@ -21,12 +21,22 @@ type ReducerState = {
   currentOperand: string
   previousOperand: string
   operation: string
+  overwrite: boolean
 }
 
 function reducer(state: ReducerState, action: ReducerAction): ReducerState {
   switch (action.type) {
     case Actions.ADD_DIGIT:
       const { digit } = action.payload
+
+      if (state.overwrite) {
+        return {
+          ...state,
+          currentOperand: digit,
+          overwrite: false,
+        }
+      }
+
       if (digit === '0' && state.currentOperand === '0') return state
       if (digit === '.' && state.currentOperand.includes('.')) return state
 
@@ -69,10 +79,27 @@ function reducer(state: ReducerState, action: ReducerAction): ReducerState {
         currentOperand: '',
         previousOperand: '',
         operation: '',
+        overwrite: false,
       }
+
     case Actions.DELETE_DIGIT:
-      console.log(action)
-      return state
+      if (state.overwrite) {
+        return {
+          ...state,
+          overwrite: false,
+          currentOperand: '',
+        }
+      }
+
+      if (state.currentOperand == '') return state
+      if (state.currentOperand.length === 1) {
+        return { ...state, currentOperand: '' }
+      }
+
+      return {
+        ...state,
+        currentOperand: state.currentOperand.slice(0, -1),
+      }
 
     case Actions.EVALUATE:
       if (
@@ -88,6 +115,7 @@ function reducer(state: ReducerState, action: ReducerAction): ReducerState {
         previousOperand: '',
         operation: '',
         currentOperand: evaluate(state),
+        overwrite: true,
       }
 
     default:
@@ -102,6 +130,7 @@ export default function App() {
     currentOperand: '',
     previousOperand: '',
     operation: '',
+    overwrite: false,
   })
 
   return (
